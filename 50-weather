@@ -1,0 +1,5 @@
+#!/bin/sh
+# Weather
+printf "\n"
+curl -s 'wttr.in/Zürich?0'
+printf "\n"
