@@ -19,7 +19,8 @@ GPU_MEM_TOTAL=`nvidia-smi -q | grep "Total" | head -1 | cut -d ":" -f2 | awk '{$
 GPU_MEM_USED=`nvidia-smi -q | grep "Used" | head -1 | cut -d ":" -f2 | awk '{$1=$1};1'`
 
 HOSTNAME=`hostname -A | cut -d ' ' -f2`
-IPADDR=`hostname -I | cut -d ' ' -f1`
+IPADDR_INT=`hostname -I | cut -d ' ' -f1`
+IPADDR_EXT=`hostname -I | cut -d ' ' -f2`
 
 W="\e[0;39m"
 G="\e[1;32m"
@@ -37,5 +38,5 @@ $W  CPU.........: $W$PROCESSOR_NAME ($G$PROCESSOR_COUNT$W vCPU)
 $W  GPU.........: $W$GPU_NAME$W ($G$GPU_TEMP$W), VRAM: $G$GPU_MEM_USED$W / $G$GPU_MEM_TOTAL$W
 $W  Memory......: $G$USED$W used, $G$AVAIL$W avail, $G$TOTAL$W total$W
 
-$W  Address.....: $W$HOSTNAME ($G$IPADDR$W)
+$W  Address.....: $W$HOSTNAME (int: $G$IPADDR_INT$W, ext: $G$IPADDR_EXT$W)
 $W  Weather.....: `curl -s 'wttr.in/?format=%l'` ($G`curl -s 'wttr.in/?format=%t'`$W) `curl -s 'wttr.in/?format=%C+%c'`"
