@@ -14,7 +14,7 @@ PROCESSOR_NAME=`grep "model name" /proc/cpuinfo | cut -d ' ' -f3- | awk {'print 
 PROCESSOR_COUNT=`grep -ioP 'processor\t:' /proc/cpuinfo | wc -l`
 
 GPU_NAME=`nvidia-smi -q | grep "Product Name" | cut -d ':' -f2 | awk '{$1=$1};1'`
-GPU_TEMP=`nvidia-smi -q | grep "GPU Current Temp" | cut -d ":" -f2 | awk '{$1=$1};1'`
+GPU_TEMP=`nvidia-smi -q | grep "GPU Current Temp" | cut -d " " -f30 | awk '{$1=$1};1'`
 GPU_MEM_TOTAL=`nvidia-smi -q | grep "Total" | head -1 | cut -d ":" -f2 | awk '{$1=$1};1'`
 GPU_MEM_USED=`nvidia-smi -q | grep "Used" | head -1 | cut -d ":" -f2 | awk '{$1=$1};1'`
 
@@ -25,8 +25,8 @@ UPDATES=$(apt list --upgradable 2>/dev/null | grep upgradable | wc -l)
 
 
 declare -A services
-services["Docker"]="docker"
-services["SSH"]="sshd"
+#services["Docker"]="docker"
+#services["SSH"]="sshd"
 services["Slurm"]="slurmd"
 services["DaVis-Dispatcher"]="DaVisDistributedProcessingDispatcherService"
 services["DaVis-Worker"]="DaVisDistributedProcessingWorkerService"
@@ -109,12 +109,10 @@ $W  Updates.....: $G$UPDATES$W available.
 $W  Services....: $text
 
 $W  CPU.........: $W$PROCESSOR_NAME ($G$PROCESSOR_COUNT$W vCPU)
-$W  GPU.........: $W$GPU_NAME$W ($G$GPU_TEMP$W), VRAM: $G$GPU_MEM_USED$W / $G$GPU_MEM_TOTAL$W
+$W  GPU.........: $W$GPU_NAME$W ($G$GPU_TEMP°C$W), VRAM: $G$GPU_MEM_USED$W / $G$GPU_MEM_TOTAL$W
 $W  Memory......: $G$USED$W used, $G$AVAIL$W avail, $G$TOTAL$W total$W
 $W  Load........: $G$LOAD1$W (1m), $G$LOAD5$W (5m), $G$LOAD15$W (15m)
 $W  Processes...:$W $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)
 
-$W  Weather.....: `curl -s 'wttr.in/Zurich,%20Schweiz?format=%l'` ($G`curl -s 'wttr.in/?format=%t'`$W) `curl -s 'wttr.in/?format=%C+%c'`
+$W  Weather.....: Zurich, Schweiz ($G`curl -s 'wttr.in/Zurich?format=%t,%20%h,%20%P'`$W) `curl -s 'wttr.in/Zurich?format=%C+%c'`
 "
-
-#printf "$text"
