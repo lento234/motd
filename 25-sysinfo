@@ -21,6 +21,8 @@ GPU_MEM_USED=`nvidia-smi -q | grep "Used" | head -1 | cut -d ":" -f2 | awk '{$1=
 HOSTNAME=`hostname -A | cut -d ' ' -f2`
 IPADDR=`hostname -I | cut -d ' ' -f1`
 
+UPDATES=$(apt list --upgradable 2>/dev/null | grep upgradable | wc -l)
+
 W="\e[0;39m"
 G="\e[1;32m"
 
@@ -40,4 +42,5 @@ $W  Memory......: $G$USED$W used, $G$AVAIL$W avail, $G$TOTAL$W total$W
 
 $W  Weather.....: `curl -s 'wttr.in/Zurich,%20Schweiz?format=%l'` ($G`curl -s 'wttr.in/?format=%t'`$W) `curl -s 'wttr.in/?format=%C+%c'`
 $W  SSH logins..: Currently $G$(who -q | cut -c '9-11' | sed '1 d')$W user(s) logged in.
+$W  Updates.....: $G$UPDATES$W available.
 "
