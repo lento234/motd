@@ -23,24 +23,97 @@ IPADDR=`hostname -I | cut -d ' ' -f1`
 
 UPDATES=$(apt list --upgradable 2>/dev/null | grep upgradable | wc -l)
 
+
+declare -A services
+services["Docker"]="docker"
+services["SSH"]="sshd"
+services["Slurm"]="slurmd"
+services["DaVis-Dispatcher"]="DaVisDistributedProcessingDispatcherService"
+services["DaVis-Worker"]="DaVisDistributedProcessingWorkerService"
+
+# Colors
 W="\e[0;39m"
 G="\e[1;32m"
+export CA="\e[34m"  # Accent
+export CO="\e[32m"  # Ok
+export CW="\e[33m"  # Warning
+export CE="\e[31m"  # Error
+export CN="\e[0m"   # None
+
+# Max width used for components in second column
+export WIDTH=100
+# Don't change! We want predictable outputs
+export LANG="en_US.UTF-8"
+
+# Prints text as either acitve or inactive
+# $1 - text to print
+# $2 - literal "active" or "inactive"
+print_status() {
+    local out=""
+    if [ "$2" == "active" ]; then
+        out+="${CO}▲${CN}"
+    else
+        out+="${CE}▼${CN}"
+    fi
+    out+=" $1${CN}"
+    echo "$out"
+}
+
+# Strips ANSI color codes from given string
+# $1 - text to strip
+strip_ansi() {
+    echo "$(echo -e "$1" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")"
+}
+
+# Prints comma-separated arguments wrapped to the given width
+# $1 - width to wrap to
+# $2, $3, ... - values to print
+print_wrap() {
+    local width=$1
+    shift
+    local out=""
+    local line_length=0
+    for element in "$@"; do
+        element="$element,"
+        local visible_elelement="$(strip_ansi "$element")"
+        local future_length=$(($line_length + ${#visible_elelement}))
+        if [ $line_length -ne 0 ] && [ $future_length -gt $width ]; then
+            out+="\n"
+            line_length=0
+        fi
+        out+="$element "
+        line_length=$(($line_length + ${#visible_elelement}))
+    done
+    [ -n "$out" ] && echo "${out::-2}"
+}
+
+
+statuses=()
+for key in "${!services[@]}"; do
+    # systemctl is-active returns non-zero code if service is inactive
+    set +e; status=$(systemctl is-active ${services[$key]}); set -e
+    statuses+=("$(print_status "$key" "$status")")
+done
+
+text="$(print_wrap $WIDTH "${statuses[@]}")"
 
 echo -e "
 ${W}System info:
 $W  Address.....: $W$HOSTNAME ($G$IPADDR$W)
 $W  Distro......: $W`cat /etc/*release | grep "PRETTY_NAME" | cut -d "=" -f 2- | sed 's/"//g'`
 $W  Kernel......: $W`uname -sr`
-
 $W  Uptime......: $W`uptime -p`
-$W  Load........: $G$LOAD1$W (1m), $G$LOAD5$W (5m), $G$LOAD15$W (15m)
-$W  Processes...:$W $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)
+$W  SSH logins..: Currently $G$(who -q | cut -c '9-11' | sed '1 d')$W user(s) logged in.
+$W  Updates.....: $G$UPDATES$W available.
+$W  Services....: $text
 
 $W  CPU.........: $W$PROCESSOR_NAME ($G$PROCESSOR_COUNT$W vCPU)
 $W  GPU.........: $W$GPU_NAME$W ($G$GPU_TEMP$W), VRAM: $G$GPU_MEM_USED$W / $G$GPU_MEM_TOTAL$W
 $W  Memory......: $G$USED$W used, $G$AVAIL$W avail, $G$TOTAL$W total$W
+$W  Load........: $G$LOAD1$W (1m), $G$LOAD5$W (5m), $G$LOAD15$W (15m)
+$W  Processes...:$W $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)
 
 $W  Weather.....: `curl -s 'wttr.in/Zurich,%20Schweiz?format=%l'` ($G`curl -s 'wttr.in/?format=%t'`$W) `curl -s 'wttr.in/?format=%C+%c'`
-$W  SSH logins..: Currently $G$(who -q | cut -c '9-11' | sed '1 d')$W user(s) logged in.
-$W  Updates.....: $G$UPDATES$W available.
 "
+
+#printf "$text"
