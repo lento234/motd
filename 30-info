@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Colors
+W="\e[0;39m"
+G="\e[1;32m"
+Y="\e[1;33m"
+BB="\e[1;37m"
+
+echo -e "
+${BB}Useful commands:$W
+$G  audio/video$W.: avconv, convert
+$G  build$W.......: ldd, hexdump, objdump
+$G  cluster$W.....: smap, sinfo, srun, sbatch
+$G  networking$W..: ping, ip, nslookup
+$G  system$W......: htop, glances, diskspace, lstopo
+$G  utility$W.....: mmv, mount, rsync
+
+$Y  help$W........: man, cheat"
+
