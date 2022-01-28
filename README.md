@@ -1,11 +1,17 @@
 <div align="center">
 
 # Message of the Day
-</div>
 
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=000000)](#license) 
 
-Collection of my `motd` scripts. Tested only on `debian-based` systems.
+***Collection of my `motd` scripts.***
+
+
+
+</div>
+
+
+Note: Tested only on `debian-based` systems.
 
 ![motd](assets/motd.png)
 
