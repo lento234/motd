@@ -1,0 +1,145 @@
+#!/bin/bash
+
+# weather
+LOCATION="Dubendorf"
+
+# get load averages
+IFS=" " read LOAD1 LOAD5 LOAD15 <<<$(cat /proc/loadavg | awk '{ print $1,$2,$3 }')
+
+# get free memory
+IFS=" " read USED AVAIL TOTAL <<<$(free -htm | grep "Mem" | awk {'print $3,$7,$2'})
+
+# get processes
+#PROCESS=`ps -eo user=|sort|uniq -c | awk '{ print $2 " " $1 }'`
+#PROCESS_ALL=`echo "$PROCESS"| awk {'print $2'} | awk '{ SUM += $1} END { print SUM }'`
+#PROCESS_ROOT=`echo "$PROCESS"| grep root | awk {'print $2'}`
+#PROCESS_USER=`echo "$PROCESS"| grep -v root | awk {'print $2'} | awk '{ SUM += $1} END { print SUM }'`
+
+# get processors
+#PROCESSOR_NAME=`grep "model name" /proc/cpuinfo | cut -d ' ' -f3- | awk {'print $0'} | head -1`
+#PROCESSOR_COUNT=`grep -ioP 'processor\t:' /proc/cpuinfo | wc -l`
+
+# get gpu info
+#GPU_NAME=`nvidia-smi -q | grep "Product Name" | cut -d ':' -f2 | awk '{$1=$1};1'`
+#GPU_TEMP=`nvidia-smi -q | grep "GPU Current Temp" | cut -d " " -f30 | awk '{$1=$1};1'`
+#GPU_MEM_TOTAL=`nvidia-smi -q | grep "Total" | head -1 | cut -d ":" -f2 | awk '{$1=$1};1'`
+#GPU_MEM_USED=`nvidia-smi -q | grep "Used" | head -1 | cut -d ":" -f2 | awk '{$1=$1};1'`
+
+# get ip
+HOSTNAME=`hostname -A | cut -d ' ' -f2`
+IPADDR=`hostname -I | cut -d ' ' -f1`
+
+# update status
+UPDATES=$(apt list --upgradable 2>/dev/null | grep upgradable | wc -l)
+
+# services status
+declare -A services
+services["Docker"]="docker"
+services["SSH"]="sshd"
+#services["Slurm"]="slurmd"
+#services["DaVis-Dispatcher"]="DaVisDistributedProcessingDispatcherService"
+#services["DaVis-Worker"]="DaVisDistributedProcessingWorkerService"
+
+# Colors
+W="\e[0;39m"
+G="\e[1;32m"
+B="\e[1;34m"
+BB="\e[1;37m"
+export CA="\e[34m"  # Accent
+export CO="\e[32m"  # Ok
+export CW="\e[33m"  # Warning
+export CE="\e[31m"  # Error
+export CN="\e[0m"   # None
+
+# Max width used for components in second column
+export WIDTH=100
+# Don't change! We want predictable outputs
+export LANG="en_US.UTF-8"
+
+# Prints text as either acitve or inactive
+# $1 - text to print
+# $2 - literal "active" or "inactive"
+print_status() {
+    local out=""
+    if [ "$2" == "active" ]; then
+        out+="${CO}▲${CN}"
+    else
+        out+="${CE}▼${CN}"
+    fi
+    out+=" $1${CN}"
+    echo "$out"
+}
+
+# Strips ANSI color codes from given string
+# $1 - text to strip
+strip_ansi() {
+    echo "$(echo -e "$1" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")"
+}
+
+# Prints comma-separated arguments wrapped to the given width
+# $1 - width to wrap to
+# $2, $3, ... - values to print
+print_wrap() {
+    local width=$1
+    shift
+    local out=""
+    local line_length=0
+    for element in "$@"; do
+        element="$element,"
+        local visible_elelement="$(strip_ansi "$element")"
+        local future_length=$(($line_length + ${#visible_elelement}))
+        if [ $line_length -ne 0 ] && [ $future_length -gt $width ]; then
+            out+="\n"
+            line_length=0
+        fi
+        out+="$element "
+        line_length=$(($line_length + ${#visible_elelement}))
+    done
+    [ -n "$out" ] && echo "${out::-2}"
+}
+
+
+statuses=()
+for key in "${!services[@]}"; do
+    # systemctl is-active returns non-zero code if service is inactive
+    set +e; status=$(systemctl is-active ${services[$key]}); set -e
+    statuses+=("$(print_status "$key" "$status")")
+done
+text="$(print_wrap $WIDTH "${statuses[@]}")"
+
+# additional
+#$W  Processes...:$W $G$PROCESS_ROOT$W (root), $G$PROCESS_USER$W (user), $G$PROCESS_ALL$W (total)
+#$B  GPU$W.........: $W$GPU_NAME$W ($G$GPU_TEMP°C$W), VRAM: $G$GPU_MEM_USED$W / $G$GPU_MEM_TOTAL$W
+#$B  CPU$W.........: $W$PROCESSOR_NAME ($G$PROCESSOR_COUNT$W vCPU)
+
+# Calculate memory
+# config
+max_usage=90
+bar_width=50
+# colors
+white="\e[39m"
+green="\e[1;32m"
+red="\e[1;31m"
+dim="\e[2m"
+undim="\e[0m"
+
+# Memory
+IFS=" " read used_mem tot_mem <<<$(free | grep "Mem" | awk {'print $3,$2'})
+usage=$(awk "BEGIN {print $used_mem/$tot_mem*100}")
+used_width=$(awk "BEGIN {print $usage*$bar_width/100}")
+
+# print sys info
+echo -e "
+${BB}System info:$W
+$B  Hostname$W....: $W$HOSTNAME ($G$IPADDR$W)
+$B  OS$W..........: $W`cat /etc/*release | grep "PRETTY_NAME" | cut -d "=" -f 2- | sed 's/"//g'`
+$B  Kernel$W......: $W`uname -sr`
+$B  Weather$W.....: $LOCATION, CH ($G`curl -s 'wttr.in/'$LOCATION'?format=%t,%20%h,%20%P'`$W) `curl -s 'wttr.in/'$LOCATION'?format=%C+%c'`
+
+$B  Uptime$W......: $W`uptime -p`
+$B  SSH logins$W..: Currently $G$(who -q | cut -c '9-11' | sed '1 d')$W user(s) logged in.
+$B  Memory$W......: $G$USED$W used, $G$AVAIL$W avail, $G$TOTAL$W total$W
+$B  Load$W........: $G$LOAD1$W (1m), $G$LOAD5$W (5m), $G$LOAD15$W (15m)
+$B  Updates$W.....: $G$UPDATES$W available.
+$B  Services$W....: $text"
+
