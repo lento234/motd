@@ -1,8 +1,9 @@
-<div align="center"
+<div align="center">
 
 # Message of the Day
-
 </div>
+
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square&labelColor=000000)](#license) 
 
 Collection of my `motd` scripts. Tested only on `debian-based` systems.
 
@@ -20,5 +21,5 @@ Collection of my `motd` scripts. Tested only on `debian-based` systems.
 
 ## Setup
 
-  1. copy the files you want in your `motd` to `/etc/update-motd.d/`. 
+  * copy the files you want in your `motd` to `/etc/update-motd.d/`. 
 
